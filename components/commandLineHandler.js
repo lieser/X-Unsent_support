@@ -4,7 +4,7 @@
  * Implements a nsICommandLineHandler.
  * The handler will react to .eml files with the included header "X-Unsent: 1"
  *
- * Version: 1.0.0pre1 (12 April 2014)
+ * Version: 1.0.0pre2 (12 April 2014)
  * 
  * Copyright (c) 2014 Philippe Lieser
  * 
@@ -19,23 +19,22 @@
 /* jshint unused:true */ // allow unused parameters that are followed by a used parameter.
 /* global Components, Services,  XPCOMUtils, MailServices */
 /* global Logging */
+/* exported NSGetFactory */
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-// CHANGEME: generate a unique ID
+// a unique ID
 const CLASS_ID = Components.ID("B19288D8-C285-11E3-9E49-91FC1C5D46B0");
 // const CLASS_NAME = "xUnsentCLH";
 const CLASS_DESCRIPTION = "X-Unsent support commandline handler";
-// CHANGEME: change the type in the contractID to be unique to your application
+// id must be unique in application
 const CONTRACT_ID = "@pl/X-Unsent_support/clh;1";
-// CHANGEME:
 // category names are sorted alphabetically. Typical command-line handlers use a
 // category that begins with the letter "m".
-const CLD_CATEGORY = "m-xUnsent";
-// CHANGEME: to the chrome URI of your extension or application
-// const CHROME_URI = "chrome://myapp/content/";
+const CLD_CATEGORY = "w-xUnsent";
+// const CHROME_URI = "chrome://xUnsent_support/content/";
 const RESOURCE_URI = "resource://xUnsent_support/";
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -45,9 +44,8 @@ Components.utils.import("resource:///modules/mailServices.js");
 Cu.import(RESOURCE_URI+"logging.jsm");
 
 
-// the messenger instance
-let messenger;
-let msgWindow;
+let messenger =Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
+let msgWindow = Cc["@mozilla.org/messenger/msgwindow;1"].createInstance(Ci.nsIMsgWindow);
 let log = Logging.getLogger("clh");
 
 /**
@@ -85,11 +83,11 @@ function parseHeader(header) {
 }
 
 /**
- * reads the message and parses the header
+ * Reads the message and parses the header
  * 
  * @param {String} msgURI
  * 
- * @return {???}
+ * @return {Object}
  */
 function parseMsg(msgURI) {
 	"use strict";
@@ -142,8 +140,106 @@ function parseMsg(msgURI) {
 	return parseHeader(headerPlain);
 }
 
+/**
+ * A dummy nsIMsgDBHdr for .eml files.
+ *
+ * from https://mxr.mozilla.org/comm-central/source/mail/base/content/msgHdrViewOverlay.js
+ */
+function nsDummyMsgHeader()
+{
+}
+nsDummyMsgHeader.prototype =
+{
+  mProperties : new Array,
+  getStringProperty : function(aProperty) {
+		"use strict";
 
-// Command Line Handler
+    if (aProperty in this.mProperties)
+      return this.mProperties[aProperty];
+    return "";
+  },
+  setStringProperty : function(aProperty, aVal) {
+		"use strict";
+
+    this.mProperties[aProperty] = aVal;
+  },
+  getUint32Property : function(aProperty) {
+		"use strict";
+
+    if (aProperty in this.mProperties)
+      return parseInt(this.mProperties[aProperty]);
+    return 0;
+  },
+  setUint32Property: function(aProperty, aVal) {
+		"use strict";
+
+    this.mProperties[aProperty] = aVal.toString();
+  },
+  markHasAttachments : function(/*hasAttachments*/) {},
+  messageSize : 0,
+  recipients : null,
+  author: null,
+  subject : "",
+  get mime2DecodedSubject() {
+		"use strict";
+
+		return this.subject;
+	},
+  ccList : null,
+  listPost : null,
+  messageId : null,
+  date : 0,
+  accountKey : "",
+  flags : 0,
+  // If you change us to return a fake folder, please update
+  // folderDisplay.js's FolderDisplayWidget's selectedMessageIsExternal getter.
+  folder : null
+};
+
+/**
+ * Observes the opening of a toplevel window and calls
+ * Services.appShell.exitLastWindowClosingSurvivalArea().
+ * Unregisters itself after first call.
+ *
+ * used to prevent shutdown on app start
+ */
+function DocumentOpendObserver()
+{
+	"use strict";
+
+	/*jshint validthis:true */
+  this.register();
+}
+
+DocumentOpendObserver.prototype = {
+  observe: function(/*subject, topic, data*/) {
+		"use strict";
+
+		log.debug("exitLastWindowClosingSurvivalArea");
+		Services.startup.exitLastWindowClosingSurvivalArea();
+		this.unregister();
+  },
+  register: function() {
+		"use strict";
+
+    let observerService = Components.classes["@mozilla.org/observer-service;1"]
+                          .getService(Components.interfaces.nsIObserverService);
+    observerService.addObserver(this, "toplevel-window-ready", false);
+  },
+  unregister: function() {
+		"use strict";
+
+    let observerService = Components.classes["@mozilla.org/observer-service;1"]
+                            .getService(Components.interfaces.nsIObserverService);
+    observerService.removeObserver(this, "toplevel-window-ready");
+  }
+};
+
+/**
+ * Command Line Handler.
+ *
+ * Reacts to the opening of an .eml file with the "X-Unsent" header set to 1.
+ */
 function CommandLineHandler() {
 }
 
@@ -159,72 +255,6 @@ CommandLineHandler.prototype = {
 	QueryInterface: XPCOMUtils.generateQI([
 		Ci.nsICommandLineHandler
 	]),
-
-	inicalized: false,
-	/**
-	 * init
-	 *
-	 * @return {Boolean} true successful initialized
-	 */
-	init : function CommandLineHandler_init() {
-		"use strict";
-
-		if (!this.inicalized) {
-			let _window;
-			
-			// is a window already open? then use it
-			_window = Services.wm.getMostRecentWindow(null);
-			if (!_window) {
-				log.debug("no window found");
-				// TODO: creating own window still bugged
-				return false;
-
-				// otherwise create one
-				
-				// let argstring = Cc["@mozilla.org/supports-string;1"]
-					// .createInstance(Ci.nsISupportsString);
-				// _window = Services.ww.openWindow(null, "chrome://messenger/content/", "_blank",
-					// "chrome,dialog=no,all", argstring);
-				
-				// window = Services.ww.openWindow(null,
-					// "chrome://messenger/content/messengercompose/messengercompose.xul",
-					// "_blank", "chrome,dialog=no,all", argstring);
-
-				log.debug("window created");
-			}
-
-			// has the window a msgWindow? then use it
-			msgWindow = _window.msgWindow;
-			if (!messenger) {
-				// otherwise create one
-				msgWindow = Cc["@mozilla.org/messenger/msgwindow;1"]
-					.createInstance(Components.interfaces.nsIMsgWindow);
-
-				log.debug("msgWindow created");
-			}
-			
-			// has the window a messenger? then use it
-			messenger = _window.messenger;
-			if (!messenger) {
-				log.debug("no messenger found");
-				// TODO: creating own messenger still bugged
-				return false;
-
-				// otherwise create one
-				messenger = Cc["@mozilla.org/messenger;1"]
-					.createInstance(Components.interfaces.nsIMessenger);
-				// the need to set a window, otherwise msgHdrFromURI throws a NS_ERROR_FAILURE
-				messenger.setWindow(_window, msgWindow);
-				
-				log.debug("messenger created");
-			}
-			
-			log.debug("inicalized clh");
-			this.inicalized = true;
-		}
-		
-		return this.inicalized;
-	},
 	
 	/* nsICommandLineHandler */
 	handle : function clh_handle(cmdLine)
@@ -269,12 +299,6 @@ CommandLineHandler.prototype = {
 
 		if (uri) {
 			if (uri.toLowerCase().endsWith(".eml")) {
-				// inint clh
-				if (!this.init()) {
-					log.error("init failed");
-					return;
-				}
-				
 				// Open this eml in a new message window
 				let file = cmdLine.resolveFile(uri);
 				// No point in trying to open a file if it doesn't exist or is empty
@@ -286,7 +310,7 @@ CommandLineHandler.prototype = {
 
 					try {
 						let msgURI = fileURL.spec;
-						let msgHdr = messenger.msgHdrFromURI(msgURI);
+						let msgHdr = new nsDummyMsgHeader();
 
 						// get headers
 						let header = parseMsg(msgURI);
@@ -296,6 +320,7 @@ CommandLineHandler.prototype = {
 							return;
 						}
 						
+						log.debug("before compose");
 						MailServices.compose.OpenComposeWindow(
 							null, // string msgComposeWindowURL
 							msgHdr, // nsIMsgDBHdr msgHdr
@@ -304,6 +329,7 @@ CommandLineHandler.prototype = {
 							Components.interfaces.nsIMsgCompFormat.Default,
 							null, // nsIMsgIdentity identity
 							msgWindow);
+						log.debug("after compose");
 					} catch (e) {
 						log.error(e);
 						return;
@@ -312,6 +338,15 @@ CommandLineHandler.prototype = {
 					// remove argument so it is not handled by nsMailDefaultHandler
 					cmdLine.removeArguments(i, i);
 					cmdLine.preventDefault = true;
+					
+					// if now window iscurrently open
+					if (!Services.wm.getMostRecentWindow(null)) {
+						log.debug("no open window");
+						// prevent shutdown
+						log.debug("enterLastWindowClosingSurvivalArea");
+						Services.startup.enterLastWindowClosingSurvivalArea();
+						new DocumentOpendObserver();
+					}
 				}
 			}
 		}

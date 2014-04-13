@@ -10,7 +10,7 @@
 		<em:name>X-Unsent support</em:name>
 		<em:description>Adds support for the X-Unsent header.</em:description>
 
-		<em:version>1.0.0pre1</em:version>
+		<em:version>1.0.0</em:version>
 
 		<em:creator>Philippe Lieser</em:creator>
 		

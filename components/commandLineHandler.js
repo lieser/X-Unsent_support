@@ -269,11 +269,14 @@ CommandLineHandler.prototype = {
 		// https://mxr.mozilla.org/comm-central/source/mail/components/nsMailDefaultHandler.js
 		
 		// The URI might be passed as the argument to the file parameter
-		uri = cmdLine.handleFlagWithParam("file", false);
+		let fileFlagPos = cmdLine.findFlag("file", false);
+		if (fileFlagPos !== -1) {
+			uri = cmdLine.getArgument(fileFlagPos+1)
+		}
 
 		let count = cmdLine.length;
 		let i;
-		if (count) {
+		if (count && fileFlagPos === -1) {
 			i = 0;
 			while (i < count) {
 				let curarg = cmdLine.getArgument(i);
@@ -341,9 +344,15 @@ CommandLineHandler.prototype = {
 					}
 				
 					// remove argument so it is not handled by nsMailDefaultHandler
-					cmdLine.removeArguments(i, i);
+					if (fileFlagPos !== -1) {
+						// remove file flag and uri parameter
+						cmdLine.removeArguments(fileFlagPos, fileFlagPos+1);
+					} else {
+						// remove uri
+						cmdLine.removeArguments(i, i);
+					}
 					cmdLine.preventDefault = true;
-					
+
 					// if now window iscurrently open
 					if (!Services.wm.getMostRecentWindow(null)) {
 						log.debug("no open window");

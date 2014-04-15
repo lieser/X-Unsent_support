@@ -4,7 +4,7 @@
  * Implements a nsICommandLineHandler.
  * The handler will react to .eml files with the included header "X-Unsent: 1"
  *
- * Version: 1.0.0 (14 April 2014)
+ * Version: 1.0.1pre1 (15 April 2014)
  * 
  * Copyright (c) 2014 Philippe Lieser
  * 
@@ -36,6 +36,7 @@ const CONTRACT_ID = "@pl/X-Unsent_support/clh;1";
 const CLD_CATEGORY = "w-xUnsent";
 // const CHROME_URI = "chrome://xUnsent_support/content/";
 const RESOURCE_URI = "resource://xUnsent_support/";
+const PREF_BRANCH = "extensions.xUnsent_support.";
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
@@ -47,6 +48,7 @@ Cu.import(RESOURCE_URI+"logging.jsm");
 let messenger =Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
 let msgWindow = Cc["@mozilla.org/messenger/msgwindow;1"].createInstance(Ci.nsIMsgWindow);
 let log = Logging.getLogger("clh");
+var prefs = Services.prefs.getBranch(PREF_BRANCH);
 
 /**
  * Utility functions
@@ -320,12 +322,15 @@ CommandLineHandler.prototype = {
 							return;
 						}
 						
+						let msgCompType = Components.interfaces.nsIMsgCompType
+							[prefs.getCharPref("default.msgCompType")];
+						
 						log.debug("before compose");
 						MailServices.compose.OpenComposeWindow(
 							null, // string msgComposeWindowURL
 							msgHdr, // nsIMsgDBHdr msgHdr
 							msgURI, // string originalMsgURI
-							Components.interfaces.nsIMsgCompType.Draft,
+							msgCompType, // nsIMsgCompType
 							Components.interfaces.nsIMsgCompFormat.Default,
 							null, // nsIMsgIdentity identity
 							msgWindow);

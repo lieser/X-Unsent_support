@@ -26,7 +26,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 // a unique ID
-const CLASS_ID = Components.ID("B19288D8-C285-11E3-9E49-91FC1C5D46B0");
+const CLASS_ID = Components.ID("84810A77-6675-496A-A9CA-B292D0164B6E");
 // const CLASS_NAME = "xUnsentCLH";
 const CLASS_DESCRIPTION = "X-Unsent support commandline handler";
 // id must be unique in application

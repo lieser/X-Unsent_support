@@ -1,5 +1,8 @@
 resource	xUnsent_support			modules/
 
-component {B19288D8-C285-11E3-9E49-91FC1C5D46B0} components/commandLineHandler.js
-contract @pl/X-Unsent_support/clh;1 {B19288D8-C285-11E3-9E49-91FC1C5D46B0}
+component {84810A77-6675-496A-A9CA-B292D0164B6E} components/commandLineHandler.js
+contract @pl/X-Unsent_support/clh;1 {84810A77-6675-496A-A9CA-B292D0164B6E}
 category command-line-handler w-xUnsent @pl/X-Unsent_support/clh;1
+
+component {078914AE-6DDE-481E-B020-7005C0DCBB02} components/DummyMailForlder.js
+contract @mozilla.org/rdf/resource-factory;1?name=mailboxDummy {078914AE-6DDE-481E-B020-7005C0DCBB02}

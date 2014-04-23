@@ -4,7 +4,7 @@
  * Implements a nsICommandLineHandler.
  * The handler will react to .eml files with the included header "X-Unsent: 1"
  *
- * Version: 1.0.1pre1 (15 April 2014)
+ * Version: 1.0.1 (23 April 2014)
  * 
  * Copyright (c) 2014 Philippe Lieser
  * 

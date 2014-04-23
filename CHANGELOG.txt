@@ -1,3 +1,8 @@
+1.0.1 [2014-04-23]
+------------------
+ - changed composition type from Draft to Template (can be changed by the "extensions.xUnsent_support.default.msgCompType" preference)
+ - only handle file flag if .eml file contains "X-Unsent: 1"
+
 1.0.0 [2014-04-14]
 ------------------
  - Initial release

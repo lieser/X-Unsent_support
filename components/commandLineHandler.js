@@ -4,9 +4,9 @@
  * Implements a nsICommandLineHandler.
  * The handler will react to .eml files with the included header "X-Unsent: 1"
  *
- * Version: 1.0.1 (23 April 2014)
+ * Version: 1.0.2 (14 March 2016)
  * 
- * Copyright (c) 2014 Philippe Lieser
+ * Copyright (c) 2014-2016 Philippe Lieser
  * 
  * This software is licensed under the terms of the MIT License.
  * 
@@ -138,6 +138,9 @@ function parseMsg(msgURI) {
 	// close inputStream
 	inputStream.close();
 	nsIInputStream.close();
+
+	// convert all EOLs to CRLF
+	headerPlain = headerPlain.replace(/(\r\n|\n|\r)/g, "\r\n");
 	
 	return parseHeader(headerPlain);
 }

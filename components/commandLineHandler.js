@@ -4,7 +4,7 @@
  * Implements a nsICommandLineHandler.
  * The handler will react to .eml files with the included header "X-Unsent: 1"
  *
- * Version: 1.0.2 (14 March 2016)
+ * Version: 1.1.0 (15 March 2016)
  * 
  * Copyright (c) 2014-2016 Philippe Lieser
  * 
@@ -331,6 +331,22 @@ CommandLineHandler.prototype = {
 						let msgCompType = Components.interfaces.nsIMsgCompType
 							[prefs.getCharPref("default.msgCompType")];
 						
+						// set author
+						msgHdr.author = header["from"][0].
+							replace(/\S+\s*:\s*/, "");
+						// get identity
+						let mailCommands = {};
+						mailCommands.accountManager =
+							Cc["@mozilla.org/messenger/account-manager;1"].
+							getService(Ci.nsIMsgAccountManager);
+						Cu.import("resource://gre/modules/iteratorUtils.jsm",
+							mailCommands);
+						Services.scriptloader.loadSubScript(
+							"chrome://messenger/content/mailCommands.js",
+							mailCommands);
+						let identity = mailCommands.
+							getIdentityForHeader(msgHdr, msgCompType);
+
 						log.debug("before compose");
 						MailServices.compose.OpenComposeWindow(
 							null, // string msgComposeWindowURL
@@ -338,11 +354,11 @@ CommandLineHandler.prototype = {
 							msgURI, // string originalMsgURI
 							msgCompType, // nsIMsgCompType
 							Components.interfaces.nsIMsgCompFormat.Default,
-							null, // nsIMsgIdentity identity
+							identity, // nsIMsgIdentity identity
 							msgWindow);
 						log.debug("after compose");
 					} catch (e) {
-						log.error(e);
+						log.error(e.toSource());
 						return;
 					}
 				

@@ -332,8 +332,10 @@ CommandLineHandler.prototype = {
 							[prefs.getCharPref("default.msgCompType")];
 						
 						// set author
-						msgHdr.author = header["from"][0].
-							replace(/\S+\s*:\s*/, "");
+						if (header["from"] && header["from"][0]) {
+							msgHdr.author = header["from"][0].
+								replace(/\S+\s*:\s*/, "");
+						}
 						// get identity
 						let mailCommands = {};
 						mailCommands.accountManager =

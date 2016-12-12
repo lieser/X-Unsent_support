@@ -12,6 +12,6 @@ The source code is available at https://github.com/lieser/X-Unsent_support.
 
 Support / Bug report
 --------------------
-Support is given at https://github.com/lieser/X-Unsent_support/issues or by e-mail to dkim.verifier.addon@gmail.com (in English or German).
+Support is given at https://github.com/lieser/X-Unsent_support/issues or by e-mail to lieser+xunsent@posteo.net (in English or German).
 
 The preferred way to report bugs is by creating an issue at https://github.com/lieser/dkim_verifier/issues.

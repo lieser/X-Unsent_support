@@ -19,6 +19,8 @@
 /* global Components, Services, XPCOMUtils */
 /* exported EXPORTED_SYMBOLS, ModuleGetter */
 
+"use strict";
+
 var EXPORTED_SYMBOLS = [ "ModuleGetter" ];
 
 const Cc = Components.classes;
@@ -43,8 +45,6 @@ var ModuleGetter = {
 	 * @param {String} [aName="Log"] The name of the getter to define on aObject for the module.
 	 */
 	getLog: function ModuleGetter_getLog(aObject, aName="Log"){
-		"use strict";
-
 		XPCOMUtils.defineLazyGetter(aObject, aName, function () {
 			try {
 				var temp = {};

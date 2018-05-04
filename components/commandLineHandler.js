@@ -4,9 +4,9 @@
  * Implements a nsICommandLineHandler.
  * The handler will react to .eml files with the included header "X-Unsent: 1"
  *
- * Version: 1.1.0 (15 March 2016)
+ * Version: 1.1.1 (04 Mai 2018)
  * 
- * Copyright (c) 2014-2016 Philippe Lieser
+ * Copyright (c) 2014-2018 Philippe Lieser
  * 
  * This software is licensed under the terms of the MIT License.
  * 
@@ -314,7 +314,11 @@ CommandLineHandler.prototype = {
 					// Get the URL for this file
 					let fileURL = Services.io.newFileURI(file)
 						.QueryInterface(Components.interfaces.nsIFileURL);
-					fileURL.query = "?type=application/x-message-display";
+					if (Services.vc.compare(Services.appinfo.platformVersion, "59.0-1") >= 0) {
+						fileURL = fileURL.mutate().setQuery("type=application/x-message-display").finalize();
+					} else {
+						fileURL.query = "?type=application/x-message-display";
+					}
 
 					try {
 						let msgURI = fileURL.spec;
@@ -341,7 +345,7 @@ CommandLineHandler.prototype = {
 						mailCommands.accountManager =
 							Cc["@mozilla.org/messenger/account-manager;1"].
 							getService(Ci.nsIMsgAccountManager);
-						Cu.import("resource://gre/modules/iteratorUtils.jsm",
+						Cu.import("resource:///modules/iteratorUtils.jsm",
 							mailCommands);
 						Services.scriptloader.loadSubScript(
 							"chrome://messenger/content/mailCommands.js",
@@ -360,7 +364,7 @@ CommandLineHandler.prototype = {
 							msgWindow);
 						log.debug("after compose");
 					} catch (e) {
-						log.error(e.toSource());
+						log.error(e);
 						return;
 					}
 				

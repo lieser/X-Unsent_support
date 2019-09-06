@@ -15,14 +15,13 @@
  */
 
 // options for JSHint
-/* jshint strict:true, moz:true, smarttabs:true */
-/* jshint unused:true */ // allow unused parameters that are followed by a used parameter.
-/* global Components, Services,  XPCOMUtils, MailServices */
+/* eslint strict: ["warn", "function"] */
+/* eslint no-magic-numbers: ["warn", { "ignoreArrayIndexes": true, "ignore": [-1, 0, 1, 2] }] */
+/* global ChromeUtils, Components */
 /* exported NSGetFactory */
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
-const Cu = Components.utils;
 
 // a unique ID
 const CLASS_ID = Components.ID("B19288D8-C285-11E3-9E49-91FC1C5D46B0");
@@ -32,8 +31,7 @@ const CLASS_DESCRIPTION = "X-Unsent support commandline handler";
 const CONTRACT_ID = "@pl/X-Unsent_support/clh;1";
 // category names are sorted alphabetically. Typical command-line handlers use a
 // category that begins with the letter "m".
-const CLD_CATEGORY = "w-xUnsent";
-// const CHROME_URI = "chrome://xUnsent_support/content/";
+// const CLD_CATEGORY = "w-xUnsent";
 const RESOURCE_URI = "resource://xUnsent_support/";
 const PREF_BRANCH = "extensions.xUnsent_support.";
 
@@ -53,12 +51,12 @@ var prefs = Services.prefs.getBranch(PREF_BRANCH);
 /**
  * Utility functions
  */
- 
+
 /**
  * parse the message header
  *
  * @param {String} header
- * 
+ *
  * @return {Object}
  */
 function parseHeader(header) {
@@ -80,15 +78,15 @@ function parseHeader(header) {
 			headerFields[hName].push(headerArray[i]+"\r\n");
 		}
 	}
-	
+
 	return headerFields;
 }
 
 /**
  * Reads the message and parses the header
- * 
+ *
  * @param {String} msgURI
- * 
+ *
  * @return {Object}
  */
 function parseMsg(msgURI) {
@@ -105,16 +103,17 @@ function parseMsg(msgURI) {
 		createInstance(Ci.nsIScriptableInputStream);
 	inputStream.init(nsIInputStream);
 	messageService.CopyMessage(msgURI, nsIInputStream, false, null /* aUrlListener */, null /* aMsgWindow */, {});
-	
+
 	// read header
+	// eslint-disable-next-line no-constant-condition
 	while(true) {
 		// read one character
 		c = inputStream.read(1);
-		
+
 		// control char reached
 		if (c === "\r" || c === "\n") {
 			c = c+inputStream.read(1);
-			
+
 			if (c === "\r\n") {
 				// CRLF ending
 				headerPlain += c;
@@ -131,7 +130,7 @@ function parseMsg(msgURI) {
 				}
 			}
 		}
-		
+
 		headerPlain += c;
 	}
 
@@ -141,7 +140,7 @@ function parseMsg(msgURI) {
 
 	// convert all EOLs to CRLF
 	headerPlain = headerPlain.replace(/(\r\n|\n|\r)/g, "\r\n");
-	
+
 	return parseHeader(headerPlain);
 }
 
@@ -149,56 +148,61 @@ function parseMsg(msgURI) {
  * A dummy nsIMsgDBHdr for .eml files.
  *
  * from https://mxr.mozilla.org/comm-central/source/mail/base/content/msgHdrViewOverlay.js
+ *
+ * @return {Void}
  */
 function nsDummyMsgHeader()
 {
+	"use strict";
 }
 nsDummyMsgHeader.prototype =
 {
-  mProperties : new Array,
-  getStringProperty : function(aProperty) {
+	mProperties : new Array,
+	getStringProperty : function(aProperty) {
 		"use strict";
 
-    if (aProperty in this.mProperties)
-      return this.mProperties[aProperty];
-    return "";
-  },
-  setStringProperty : function(aProperty, aVal) {
+		if (aProperty in this.mProperties) {
+			return this.mProperties[aProperty];
+		}
+		return "";
+	},
+	setStringProperty : function(aProperty, aVal) {
 		"use strict";
 
-    this.mProperties[aProperty] = aVal;
-  },
-  getUint32Property : function(aProperty) {
+		this.mProperties[aProperty] = aVal;
+	},
+	getUint32Property : function(aProperty) {
 		"use strict";
 
-    if (aProperty in this.mProperties)
-      return parseInt(this.mProperties[aProperty]);
-    return 0;
-  },
-  setUint32Property: function(aProperty, aVal) {
+		if (aProperty in this.mProperties) {
+			return parseInt(this.mProperties[aProperty], 10);
+		}
+		return 0;
+	},
+	setUint32Property: function(aProperty, aVal) {
 		"use strict";
 
-    this.mProperties[aProperty] = aVal.toString();
-  },
-  markHasAttachments : function(/*hasAttachments*/) {},
-  messageSize : 0,
-  recipients : null,
-  author: null,
-  subject : "",
-  get mime2DecodedSubject() {
+		this.mProperties[aProperty] = aVal.toString();
+	},
+	markHasAttachments : function(/*hasAttachments*/) {"use strict";},
+	messageSize : 0,
+	recipients : null,
+	author: null,
+	subject : "",
+	get mime2DecodedSubject() {
 		"use strict";
 
 		return this.subject;
 	},
-  ccList : null,
-  listPost : null,
-  messageId : null,
-  date : 0,
-  accountKey : "",
-  flags : 0,
-  // If you change us to return a fake folder, please update
-  // folderDisplay.js's FolderDisplayWidget's selectedMessageIsExternal getter.
-  folder : null
+	ccList : null,
+	listPost : null,
+	messageId : null,
+	date : 0,
+	accountKey : "",
+	flags : 0,
+	// If you change us to return a fake folder, please update
+	// folderDisplay.js's FolderDisplayWidget's selectedMessageIsExternal getter.
+	folder : null
 };
 
 /**
@@ -207,45 +211,50 @@ nsDummyMsgHeader.prototype =
  * Unregisters itself after first call.
  *
  * used to prevent shutdown on app start
+ *
+ * @return {Void}
  */
 function DocumentOpendObserver()
 {
 	"use strict";
 
 	/*jshint validthis:true */
-  this.register();
+	this.register();
 }
 
 DocumentOpendObserver.prototype = {
-  observe: function(/*subject, topic, data*/) {
+	observe: function(/*subject, topic, data*/) {
 		"use strict";
 
 		log.debug("exitLastWindowClosingSurvivalArea");
 		Services.startup.exitLastWindowClosingSurvivalArea();
 		this.unregister();
-  },
-  register: function() {
+	},
+	register: function() {
 		"use strict";
 
-    let observerService = Components.classes["@mozilla.org/observer-service;1"]
-                          .getService(Components.interfaces.nsIObserverService);
-    observerService.addObserver(this, "toplevel-window-ready", false);
-  },
-  unregister: function() {
+		let observerService = Components.classes["@mozilla.org/observer-service;1"].
+			getService(Components.interfaces.nsIObserverService);
+		observerService.addObserver(this, "toplevel-window-ready", false);
+	},
+	unregister: function() {
 		"use strict";
 
-    let observerService = Components.classes["@mozilla.org/observer-service;1"]
-                            .getService(Components.interfaces.nsIObserverService);
-    observerService.removeObserver(this, "toplevel-window-ready");
-  }
+		let observerService = Components.classes["@mozilla.org/observer-service;1"].
+			getService(Components.interfaces.nsIObserverService);
+		observerService.removeObserver(this, "toplevel-window-ready");
+	}
 };
 
 /**
  * Command Line Handler.
  *
  * Reacts to the opening of an .eml file with the "X-Unsent" header set to 1.
+ *
+ * @return {Void}
  */
 function CommandLineHandler() {
+	"use strict";
 }
 
 CommandLineHandler.prototype = {
@@ -256,21 +265,21 @@ CommandLineHandler.prototype = {
 	QueryInterface: ChromeUtils.generateQI([
 		Ci.nsICommandLineHandler
 	]),
-	
+
 	/* nsICommandLineHandler */
 	handle : function clh_handle(cmdLine)
 	{
 		"use strict";
 
 		let uri;
-		
+
 		// most copied from
 		// https://mxr.mozilla.org/comm-central/source/mail/components/nsMailDefaultHandler.js
-		
+
 		// The URI might be passed as the argument to the file parameter
 		let fileFlagPos = cmdLine.findFlag("file", false);
 		if (fileFlagPos !== -1) {
-			uri = cmdLine.getArgument(fileFlagPos+1)
+			uri = cmdLine.getArgument(fileFlagPos+1);
 		}
 
 		let count = cmdLine.length;
@@ -279,8 +288,9 @@ CommandLineHandler.prototype = {
 			i = 0;
 			while (i < count) {
 				let curarg = cmdLine.getArgument(i);
-				if (!curarg.startsWith("-"))
+				if (!curarg.startsWith("-")) {
 					break;
+				}
 
 				log.debug("Warning: unrecognized command line flag " + curarg + "\n");
 				// To emulate the pre-nsICommandLine behavior, we ignore the
@@ -308,8 +318,8 @@ CommandLineHandler.prototype = {
 				// No point in trying to open a file if it doesn't exist or is empty
 				if (file.exists() && file.fileSize > 0) {
 					// Get the URL for this file
-					let fileURL = Services.io.newFileURI(file)
-						.QueryInterface(Components.interfaces.nsIFileURL);
+					let fileURL = Services.io.newFileURI(file).
+						QueryInterface(Components.interfaces.nsIFileURL);
 					if (Services.vc.compare(Services.appinfo.platformVersion, "59.0-1") >= 0) {
 						fileURL = fileURL.mutate().setQuery("type=application/x-message-display").finalize();
 					} else {
@@ -331,10 +341,10 @@ CommandLineHandler.prototype = {
 						if (x.substr(x.indexOf(":")+1).trim() !== "1") {
 							return;
 						}
-						
-						let msgCompType = Components.interfaces.nsIMsgCompType
-							[prefs.getCharPref("default.msgCompType")];
-						
+
+						let msgCompType = Components.interfaces.nsIMsgCompType[
+							prefs.getCharPref("default.msgCompType")];
+
 						// set author
 						if (header["from"] && header["from"][0]) {
 							msgHdr.author = header["from"][0].
@@ -357,7 +367,7 @@ CommandLineHandler.prototype = {
 						log.error(e);
 						return;
 					}
-				
+
 					// remove argument so it is not handled by nsMailDefaultHandler
 					if (fileFlagPos !== -1) {
 						// remove file flag and uri parameter
@@ -368,28 +378,19 @@ CommandLineHandler.prototype = {
 					}
 					cmdLine.preventDefault = true;
 
-					// if now window iscurrently open
+					// if now window is currently open
 					if (!Services.wm.getMostRecentWindow(null)) {
 						log.debug("no open window");
 						// prevent shutdown
 						log.debug("enterLastWindowClosingSurvivalArea");
 						Services.startup.enterLastWindowClosingSurvivalArea();
+						// eslint-disable-next-line no-new
 						new DocumentOpendObserver();
 					}
 				}
 			}
 		}
 	},
-
-	// CHANGEME: change the help info as appropriate, but
-	// follow the guidelines in nsICommandLineHandler.idl
-	// specifically, flag descriptions should start at
-	// character 24, and lines should be wrapped at
-	// 72 characters with embedded newlines,
-	// and finally, the string should end with a newline
-	// helpInfo : "  -myapp               Open My Application\n" +
-	           // "  -viewapp <uri>       View and edit the URI in My Application,\n" +
-	           // "                       wrapping this description\n"
 };
 
 var NSGetFactory = XPCOMUtils.generateNSGetFactory([CommandLineHandler]);

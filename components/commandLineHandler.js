@@ -1,15 +1,15 @@
 /*
  * commandLineHandler.js
- * 
+ *
  * Implements a nsICommandLineHandler.
  * The handler will react to .eml files with the included header "X-Unsent: 1"
  *
- * Version: 1.1.1 (04 Mai 2018)
- * 
- * Copyright (c) 2014-2018 Philippe Lieser
- * 
+ * Version: 1.2.0 (06 September 2019)
+ *
+ * Copyright (c) 2014-2019 Philippe Lieser
+ *
  * This software is licensed under the terms of the MIT License.
- * 
+ *
  * The above copyright and license notice shall be
  * included in all copies or substantial portions of the Software.
  */
@@ -18,7 +18,6 @@
 /* jshint strict:true, moz:true, smarttabs:true */
 /* jshint unused:true */ // allow unused parameters that are followed by a used parameter.
 /* global Components, Services,  XPCOMUtils, MailServices */
-/* global Logging */
 /* exported NSGetFactory */
 
 const Cc = Components.classes;
@@ -38,11 +37,12 @@ const CLD_CATEGORY = "w-xUnsent";
 const RESOURCE_URI = "resource://xUnsent_support/";
 const PREF_BRANCH = "extensions.xUnsent_support.";
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
+var { XPCOMUtils } = ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+var { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+var { MailServices } = ChromeUtils.import("resource:///modules/MailServices.jsm");
+var { MailUtils } = ChromeUtils.import("resource:///modules/MailUtils.jsm");
 
-Cu.import(RESOURCE_URI+"logging.jsm");
+var { Logging } = ChromeUtils.import(RESOURCE_URI+"logging.jsm");
 
 
 let messenger =Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
@@ -252,12 +252,8 @@ CommandLineHandler.prototype = {
 	classDescription: CLASS_DESCRIPTION,
 	classID: CLASS_ID,
 	contractID: CONTRACT_ID,
-	_xpcom_categories: [{
-		category: "command-line-handler",
-		entry: CLD_CATEGORY
-	}],
 
-	QueryInterface: XPCOMUtils.generateQI([
+	QueryInterface: ChromeUtils.generateQI([
 		Ci.nsICommandLineHandler
 	]),
 	
@@ -326,6 +322,10 @@ CommandLineHandler.prototype = {
 
 						// get headers
 						let header = parseMsg(msgURI);
+						// only continue if X-Unsent header exist
+						if (!header["x-unsent"]) {
+							return;
+						}
 						// only continue if X-Unsent header is set to 1
 						let x = header["x-unsent"][0];
 						if (x.substr(x.indexOf(":")+1).trim() !== "1") {
@@ -341,17 +341,7 @@ CommandLineHandler.prototype = {
 								replace(/\S+\s*:\s*/, "");
 						}
 						// get identity
-						let mailCommands = {};
-						mailCommands.accountManager =
-							Cc["@mozilla.org/messenger/account-manager;1"].
-							getService(Ci.nsIMsgAccountManager);
-						Cu.import("resource:///modules/iteratorUtils.jsm",
-							mailCommands);
-						Services.scriptloader.loadSubScript(
-							"chrome://messenger/content/mailCommands.js",
-							mailCommands);
-						let identity = mailCommands.
-							getIdentityForHeader(msgHdr, msgCompType);
+						let identity = MailUtils.getIdentityForHeader(msgHdr, msgCompType);
 
 						log.debug("before compose");
 						MailServices.compose.OpenComposeWindow(

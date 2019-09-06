@@ -1,3 +1,7 @@
+3.0.0 [2019-06-09]
+ - now requires at least Thunderbird 68
+ - fixed incompatibility with Thunderbird 68
+
 2.0.0 [2018-05-04]
 ------------------
  - now requires at least Thunderbird 52

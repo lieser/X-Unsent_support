@@ -6,7 +6,7 @@
 		{
 			"label": "Build xpi",
 			"type": "shell",
-			"command": "rm ./X-Unsent_support@pl.xpi; & \\\"$($Env:ProgramFiles)/7-Zip/7z.exe\\\" a -tzip -mx1 X-Unsent_support@pl.xpi ./components/ ./defaults/ '-i!modules/*.js' '-i!modules/*.jsm' ./CHANGELOG.txt ./chrome.manifest ./icon.png ./icon_32.png ./LICENSE.txt ./manifest.json ./README.md",
+			"command": "rm ./X-Unsent_support@pl.xpi; & \\\"$($Env:ProgramFiles)/7-Zip/7z.exe\\\" a -tzip -mx1 X-Unsent_support@pl.xpi '-i!components/*.js' '-i!components/*.json' '-i!content/*.js' ./CHANGELOG.txt ./LICENSE.txt ./manifest.json ./README.md",
 			"problemMatcher": [],
 			"group": {
 				"kind": "build",

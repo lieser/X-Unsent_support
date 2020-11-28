@@ -38,6 +38,9 @@ const PREF_BRANCH = "extensions.xUnsent_support.";
 const { XPCOMUtils } = ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 /** @type {{Services: ServicesM}} */
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+// @ts-expect-error
+// eslint-disable-next-line no-redeclare
+const { setTimeout, clearTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 /** @type {{MailServices: MailServicesM}} */
 const { MailServices } = ChromeUtils.import("resource:///modules/MailServices.jsm");
 /** @type {{MailUtils: MailUtilsM}} */
@@ -343,19 +346,55 @@ CommandLineHandler.prototype = {
 // eslint-disable-next-line no-invalid-this
 this.commandLineHandler = class extends ExtensionCommon.ExtensionAPI {
 	/**
+	 * Sleep for <ms> milliseconds.
+	 *
+	 * @param {number} ms
+	 * @return {Promise<void>}
+	 */
+	_sleep(ms) {
+		return new Promise(resolve => setTimeout(resolve, ms));
+	}
+
+	/**
+	 * Wait until Components.manager.registerFactory will be available,
+	 * as it can be unavailable for a few milliseconds after startup.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async _waitForRegisterFactory() {
+		const overallTimeout = 15000;
+		let retrySleepTime = 100;
+		const retrySleepTimeIncrease = 50;
+		const retrySleepTimeMax = 500;
+
+		let timeout = false;
+		const timeoutId = setTimeout(() => {
+			timeout = true;
+		}, overallTimeout);
+		// eslint-disable-next-line no-unmodified-loop-condition
+		while (!timeout) {
+			if (Components.manager.registerFactory) {
+				clearTimeout(timeoutId);
+				return;
+			}
+			console.log("Components.manager.registerFactory not ready (will wait)");
+			await this._sleep(retrySleepTime);
+			retrySleepTime = Math.max(retrySleepTime + retrySleepTimeIncrease, retrySleepTimeMax);
+		}
+		throw Error("Components.manager.registerFactory not available");
+	}
+
+	/**
 	 * @param {ExtensionCommon.Context} context
 	 * @returns {{commandLineHandler: browser.commandLineHandler}}
 	 */
 	getAPI(context) {
 		return {
 			commandLineHandler: {
-				// eslint-disable-next-line require-await
 				init: async () => {
 					// @ts-expect-error
 					const factory = XPCOMUtils.generateNSGetFactory([CommandLineHandler])(CLASS_ID);
-					// WARNING: this assumes that Thunderbird is already running, as
-					// Components.manager.registerFactory will be unavailable for a few
-					// milliseconds after startup.
+					await this._waitForRegisterFactory();
 					Components.manager.registerFactory(CLASS_ID, "exampleComponent", CONTRACT_ID,
 						factory);
 

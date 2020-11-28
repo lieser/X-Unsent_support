@@ -1,3 +1,5 @@
+ - fixed Thunderbirds stopping to respond if an eml file with an invalid format is opened
+
 4.0.0 [2020-11-26]
 ------------------
  - now requires at least Thunderbird 78

@@ -11,6 +11,8 @@
  */
 
 // @ts-check
+///<reference path="../mozilla.d.ts" />
+///<reference path="./commandLineHandler.d.ts" />
 /* eslint-env shared-node-browser */
 /* global ChromeUtils, Components, ExtensionCommon */
 /* exported NSGetFactory */
@@ -113,6 +115,9 @@ function parseMsg(msgURI) {
 	while (true) {
 		// read one character
 		c = inputStream.read(1);
+		if (c === "") {
+			throw new Error("End of file reached before end of header");
+		}
 
 		// control char reached
 		if (c === "\r" || c === "\n") {
